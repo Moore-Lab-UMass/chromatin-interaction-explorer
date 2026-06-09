@@ -37,6 +37,9 @@ const options: Options = {
     hover: true,
     tooltipDelay: 200,
   },
+  layout: {
+    improvedLayout: false,
+  },
   physics: {
     barnesHut: {
       avoidOverlap: 0,
@@ -50,9 +53,9 @@ const options: Options = {
     stabilization: {
       enabled: true,
       fit: true,
-      iterations: 1000,
+      iterations: 350,
       onlyDynamicEdges: false,
-      updateInterval: 50,
+      updateInterval: 25,
     },
   },
 };
@@ -97,8 +100,17 @@ export default function NetworkGraph({ dataset }: NetworkGraphProps) {
     setPhysicsSolver("barnesHut");
     configRef.current.replaceChildren();
 
+    const stabilizationIterations = //1000
+      dataset.nodes.length + dataset.edges.length > 3000 ? 200 : 350;
     const networkOptions: Options = {
       ...options,
+      physics: {
+        ...options.physics,
+        stabilization: {
+          ...options.physics?.stabilization,
+          iterations: stabilizationIterations,
+        },
+      },
       configure: {
         container: configRef.current,
         enabled: true,
