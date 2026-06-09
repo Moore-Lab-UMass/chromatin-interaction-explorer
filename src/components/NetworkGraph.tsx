@@ -5,9 +5,13 @@ import {
   Box,
   Button,
   Checkbox,
+  FormControl,
   FormControlLabel,
+  InputLabel,
   LinearProgress,
+  MenuItem,
   Paper,
+  Select,
   Stack,
   Typography,
 } from "@mui/material";
@@ -57,6 +61,19 @@ interface NetworkGraphProps {
   dataset: InteractionDataset;
 }
 
+type PhysicsSolver =
+  | "barnesHut"
+  | "forceAtlas2Based"
+  | "repulsion"
+  | "hierarchicalRepulsion";
+
+const physicsSolvers: PhysicsSolver[] = [
+  "barnesHut",
+  "forceAtlas2Based",
+  "repulsion",
+  "hierarchicalRepulsion",
+];
+
 export default function NetworkGraph({ dataset }: NetworkGraphProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const configRef = useRef<HTMLDivElement>(null);
@@ -66,6 +83,8 @@ export default function NetworkGraph({ dataset }: NetworkGraphProps) {
   const [controlsOpen, setControlsOpen] = useState(false);
   const [graphLoaded, setGraphLoaded] = useState(false);
   const [physicsEnabled, setPhysicsEnabled] = useState(true);
+  const [physicsSolver, setPhysicsSolver] =
+    useState<PhysicsSolver>("barnesHut");
 
   useEffect(() => {
     if (!containerRef.current || !configRef.current) return;
@@ -75,6 +94,7 @@ export default function NetworkGraph({ dataset }: NetworkGraphProps) {
     setGraphLoaded(false);
     setControlsOpen(false);
     setPhysicsEnabled(true);
+    setPhysicsSolver("barnesHut");
     configRef.current.replaceChildren();
 
     const networkOptions: Options = {
@@ -85,7 +105,10 @@ export default function NetworkGraph({ dataset }: NetworkGraphProps) {
         filter: (option: string, path: string[]) =>
           (option === "physics" && path.length === 0) ||
           (path[0] === "physics" &&
-            !(option === "enabled" && path.length === 1)),
+            !(
+              path.length === 1 &&
+              (option === "enabled" || option === "solver")
+            )),
         showButton: true,
       },
     };
@@ -187,10 +210,17 @@ export default function NetworkGraph({ dataset }: NetworkGraphProps) {
           configRef={configRef}
           open={controlsOpen}
           physicsEnabled={physicsEnabled}
+          physicsSolver={physicsSolver}
           onPhysicsEnabledChange={(enabled) => {
             setPhysicsEnabled(enabled);
             networkRef.current?.setOptions({
               physics: { enabled },
+            });
+          }}
+          onPhysicsSolverChange={(solver) => {
+            setPhysicsSolver(solver);
+            networkRef.current?.setOptions({
+              physics: { solver },
             });
           }}
         />
@@ -203,14 +233,18 @@ interface PhysicsControlsProps {
   configRef: React.RefObject<HTMLDivElement | null>;
   open: boolean;
   physicsEnabled: boolean;
+  physicsSolver: PhysicsSolver;
   onPhysicsEnabledChange: (enabled: boolean) => void;
+  onPhysicsSolverChange: (solver: PhysicsSolver) => void;
 }
 
 function PhysicsControls({
   configRef,
   open,
   physicsEnabled,
+  physicsSolver,
   onPhysicsEnabledChange,
+  onPhysicsSolverChange,
 }: PhysicsControlsProps) {
   return (
     <Paper
@@ -224,9 +258,62 @@ function PhysicsControls({
         overflow: "auto",
         bgcolor: "#fff",
         color: "#111",
+        colorScheme: "light",
         p: 1,
-        "& .vis-configuration": {
+        "& .vis-configuration-wrapper": {
           width: "100%",
+        },
+        "& .vis-configuration.vis-config-option-container, & .vis-configuration.vis-config-button":
+          {
+            left: 0,
+            width: "100%",
+            boxSizing: "border-box",
+          },
+        "& .vis-configuration.vis-config-item": {
+          left: 0,
+          display: "flex",
+          alignItems: "center",
+          gap: 1,
+          width: "100%",
+          minHeight: 32,
+          height: "auto",
+          boxSizing: "border-box",
+          overflow: "visible",
+        },
+        "& .vis-configuration.vis-config-label": {
+          flex: "0 0 120px",
+          width: 120,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        },
+        "& input.vis-configuration.vis-config-range": {
+          flex: "1 1 auto",
+          width: "auto",
+          minWidth: 80,
+        },
+        "& input.vis-configuration.vis-config-range::-webkit-slider-runnable-track, & input.vis-configuration.vis-config-range::-moz-range-track":
+          {
+            width: "100%",
+          },
+        "& input.vis-configuration.vis-config-rangeinput": {
+          top: 0,
+          flex: "0 0 56px",
+          width: 56,
+          boxSizing: "border-box",
+          color: "#111",
+          backgroundColor: "#fff",
+        },
+        "& select.vis-configuration.vis-config-select": {
+          flex: "1 1 auto",
+          width: "auto",
+          minWidth: 0,
+          color: "#111",
+          backgroundColor: "#fff",
+        },
+        "& select.vis-configuration.vis-config-select option": {
+          color: "#111",
+          backgroundColor: "#fff",
         },
       }}
     >
@@ -256,6 +343,66 @@ function PhysicsControls({
         }
         label="Enabled"
       />
+      <Box sx={{ px: 1, my: 1 }}>
+        <FormControl
+          fullWidth
+          size="small"
+          sx={{
+            "& .MuiInputLabel-root": {
+              color: "#455a64",
+            },
+            "& .MuiInputLabel-root.Mui-focused": {
+              color: "#0277bd",
+            },
+            "& .MuiOutlinedInput-root": {
+              color: "#111",
+              backgroundColor: "#fff",
+              "& fieldset": {
+                borderColor: "#78909c",
+              },
+              "&:hover fieldset": {
+                borderColor: "#455a64",
+              },
+              "&.Mui-focused fieldset": {
+                borderColor: "#0277bd",
+              },
+            },
+            "& .MuiSelect-icon": {
+              color: "#455a64",
+            },
+          }}
+        >
+          <InputLabel id="physics-solver-label">Solver</InputLabel>
+          <Select
+            labelId="physics-solver-label"
+            label="Solver"
+            value={physicsSolver}
+            MenuProps={{
+              PaperProps: {
+                sx: {
+                  color: "#111",
+                  backgroundColor: "#fff",
+                  "& .MuiMenuItem-root:hover": {
+                    backgroundColor: "#eceff1",
+                  },
+                  "& .MuiMenuItem-root.Mui-selected": {
+                    backgroundColor: "#e1f5fe",
+                  },
+                },
+              },
+            }}
+            onChange={(event) =>
+              onPhysicsSolverChange(event.target.value as PhysicsSolver)
+            }
+          >
+            {physicsSolvers.map((solver) => (
+              <MenuItem key={solver} value={solver}>
+                {solver}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Box>
       <Box ref={configRef} />
     </Paper>
   );

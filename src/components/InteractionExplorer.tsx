@@ -24,10 +24,8 @@ import type { InteractionDataset } from "@/data/types";
 import NetworkGraph from "./NetworkGraph";
 
 export default function InteractionExplorer() {
-  const [cellLine, setCellLine] = useState<CellLine>(cellLines[0]);
-  const [chromosome, setChromosome] = useState(
-    getChromosomes(cellLines[0])[0],
-  );
+  const [cellLine, setCellLine] = useState<CellLine>("HCT116");
+  const [chromosome, setChromosome] = useState("chr15");
   const [dataset, setDataset] = useState<InteractionDataset | null>(null);
   const [error, setError] = useState("");
 

@@ -8,13 +8,14 @@ export interface InteractionNode extends Node {
 export interface InteractionEdge extends Edge {
   from: string;
   to: string;
-  interaction_id: string;
   gene1: string;
   gene2: string;
-  gene1_bru_minus: number | null;
-  gene1_bru_plus: number | null;
-  gene2_bru_minus: number | null;
-  gene2_bru_plus: number | null;
+  gene1_bru_anti: number | null;
+  gene1_bru_sense: number | null;
+  gene2_bru_anti: number | null;
+  gene2_bru_sense: number | null;
+  tpm_p1: number | null;
+  tpm_p2: number | null;
 }
 
 export interface InteractionDataset {
