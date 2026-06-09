@@ -1,4 +1,4 @@
-# Protein-Protein Interaction Explorer
+# Hubble Interaction Explorer
 
 Next.js, MUI, and TypeScript app for exploring `vis-network` interaction
 graphs by cell line and chromosome.

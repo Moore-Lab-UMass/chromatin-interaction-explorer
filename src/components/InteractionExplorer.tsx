@@ -56,7 +56,7 @@ export default function InteractionExplorer() {
       <Stack spacing={2}>
         <Box>
           <Typography variant="h4" component="h1" fontWeight={700}>
-            Protein-Protein Interaction Explorer
+            Hubble Interaction Explorer
           </Typography>
           <Typography color="text.secondary">
             Explore interaction networks by cell line and chromosome.
