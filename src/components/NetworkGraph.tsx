@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
+  Autocomplete,
   Box,
   Button,
   Checkbox,
@@ -13,6 +14,7 @@ import {
   Paper,
   Select,
   Stack,
+  TextField,
   Typography,
 } from "@mui/material";
 import { DataSet } from "vis-data";
@@ -20,6 +22,15 @@ import { Network, type Options } from "vis-network";
 import type { InteractionDataset } from "@/data/types";
 
 const options: Options = {
+  nodes: {
+    borderWidthSelected: 5,
+    color: {
+      highlight: {
+        background: "#ffca28",
+        border: "#ff4081",
+      },
+    },
+  },
   edges: {
     color: {
       inherit: true,
@@ -88,6 +99,7 @@ export default function NetworkGraph({ dataset }: NetworkGraphProps) {
   const [physicsEnabled, setPhysicsEnabled] = useState(true);
   const [physicsSolver, setPhysicsSolver] =
     useState<PhysicsSolver>("barnesHut");
+  const [selectedCcre, setSelectedCcre] = useState<string | null>(null);
 
   useEffect(() => {
     if (!containerRef.current || !configRef.current) return;
@@ -98,6 +110,7 @@ export default function NetworkGraph({ dataset }: NetworkGraphProps) {
     setControlsOpen(false);
     setPhysicsEnabled(true);
     setPhysicsSolver("barnesHut");
+    setSelectedCcre(null);
     configRef.current.replaceChildren();
 
     const stabilizationIterations = //1000
@@ -162,19 +175,62 @@ export default function NetworkGraph({ dataset }: NetworkGraphProps) {
     return () => window.clearTimeout(timer);
   }, [controlsOpen]);
 
+  const selectCcre = (ccre: string | null) => {
+    setSelectedCcre(ccre);
+
+    const network = networkRef.current;
+    if (!network) return;
+
+    if (!ccre) {
+      network.unselectAll();
+      return;
+    }
+
+    setPhysicsEnabled(false);
+    network.setOptions({ physics: { enabled: false } });
+    network.selectNodes([ccre]);
+    network.focus(ccre, {
+      animation: {
+        duration: 700,
+        easingFunction: "easeInOutQuad",
+      },
+      scale: 1.2,
+    });
+  };
+
   return (
     <Stack spacing={1}>
-      <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+      <Stack
+        direction={{ xs: "column", sm: "row" }}
+        spacing={1}
+        justifyContent="space-between"
+      >
+        <Autocomplete
+          value={selectedCcre}
+          options={dataset.nodes.map((node) => node.id)}
+          onChange={(_event, value) => selectCcre(value)}
+          disabled={!graphLoaded}
+          sx={{ width: { xs: "100%", sm: 340 } }}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="Search cCRE"
+              placeholder="e.g. EH38E3126939"
+              size="small"
+            />
+          )}
+        />
         <Button
           variant="outlined"
           size="small"
+          sx={{ alignSelf: { xs: "stretch", sm: "center" } }}
           onClick={() => setControlsOpen((open) => !open)}
           disabled={!graphLoaded}
           aria-expanded={controlsOpen}
         >
           {controlsOpen ? "Hide physics controls" : "Show physics controls"}
         </Button>
-      </Box>
+      </Stack>
 
       <Stack direction={{ xs: "column", lg: "row" }} spacing={2} alignItems="stretch">
       <Box
