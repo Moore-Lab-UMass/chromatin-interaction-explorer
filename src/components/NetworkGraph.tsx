@@ -205,21 +205,40 @@ export default function NetworkGraph({ dataset }: NetworkGraphProps) {
         spacing={1}
         justifyContent="space-between"
       >
-        <Autocomplete
-          value={selectedCcre}
-          options={dataset.nodes.map((node) => node.id)}
-          onChange={(_event, value) => selectCcre(value)}
-          disabled={!graphLoaded}
-          sx={{ width: { xs: "100%", sm: 340 } }}
-          renderInput={(params) => (
-            <TextField
-              {...params}
-              label="Search cCRE"
-              placeholder="e.g. EH38E3126939"
-              size="small"
-            />
-          )}
-        />
+        <Stack direction="row" spacing={1} alignItems="center">
+          <Autocomplete
+            value={selectedCcre}
+            options={dataset.nodes.map((node) => node.id)}
+            onChange={(_event, value) => selectCcre(value)}
+            disabled={!graphLoaded}
+            sx={{ width: { xs: "100%", sm: 340 } }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Search cCRE"
+                placeholder="e.g. EH38E3126939"
+                size="small"
+              />
+            )}
+          />
+          <FormControlLabel
+            sx={{ flexShrink: 0 }}
+            control={
+              <Checkbox
+                checked={physicsEnabled}
+                disabled={!graphLoaded}
+                onChange={(event) => {
+                  const enabled = event.target.checked;
+                  setPhysicsEnabled(enabled);
+                  networkRef.current?.setOptions({
+                    physics: { enabled },
+                  });
+                }}
+              />
+            }
+            label="Enabled"
+          />
+        </Stack>
         <Button
           variant="outlined"
           size="small"
@@ -277,14 +296,7 @@ export default function NetworkGraph({ dataset }: NetworkGraphProps) {
         <PhysicsControls
           configRef={configRef}
           open={controlsOpen}
-          physicsEnabled={physicsEnabled}
           physicsSolver={physicsSolver}
-          onPhysicsEnabledChange={(enabled) => {
-            setPhysicsEnabled(enabled);
-            networkRef.current?.setOptions({
-              physics: { enabled },
-            });
-          }}
           onPhysicsSolverChange={(solver) => {
             setPhysicsSolver(solver);
             networkRef.current?.setOptions({
@@ -300,18 +312,14 @@ export default function NetworkGraph({ dataset }: NetworkGraphProps) {
 interface PhysicsControlsProps {
   configRef: React.RefObject<HTMLDivElement | null>;
   open: boolean;
-  physicsEnabled: boolean;
   physicsSolver: PhysicsSolver;
-  onPhysicsEnabledChange: (enabled: boolean) => void;
   onPhysicsSolverChange: (solver: PhysicsSolver) => void;
 }
 
 function PhysicsControls({
   configRef,
   open,
-  physicsEnabled,
   physicsSolver,
-  onPhysicsEnabledChange,
   onPhysicsSolverChange,
 }: PhysicsControlsProps) {
   return (
@@ -388,29 +396,6 @@ function PhysicsControls({
       <Typography variant="h6" sx={{ color: "#111", px: 1, pt: 0.5 }}>
         Physics controls
       </Typography>
-      <FormControlLabel
-        sx={{ px: 1 }}
-        control={
-          <Checkbox
-            checked={physicsEnabled}
-            onChange={(event) => onPhysicsEnabledChange(event.target.checked)}
-            sx={{
-              color: "#455a64",
-              "&.Mui-checked": {
-                color: "#0277bd",
-              },
-              "&:hover": {
-                bgcolor: "rgba(2, 119, 189, 0.08)",
-              },
-              "&.Mui-focusVisible": {
-                outline: "2px solid #0277bd",
-                outlineOffset: 2,
-              },
-            }}
-          />
-        }
-        label="Enabled"
-      />
       <Box sx={{ px: 1, my: 1 }}>
         <FormControl
           fullWidth
