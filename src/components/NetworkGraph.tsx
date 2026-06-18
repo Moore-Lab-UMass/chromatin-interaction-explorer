@@ -5,7 +5,7 @@ import {
   Autocomplete,
   Box,
   Button,
-  Checkbox,
+  Collapse,
   FormControl,
   FormControlLabel,
   InputLabel,
@@ -14,12 +14,33 @@ import {
   Paper,
   Select,
   Stack,
+  Switch,
   TextField,
   Typography,
 } from "@mui/material";
 import { DataSet } from "vis-data";
 import { Network, type Options } from "vis-network";
-import type { InteractionDataset } from "@/data/types";
+import type { InteractionDataset, InteractionNode } from "@/data/types";
+
+const nodeColorsByType: Record<string, string> = {
+  protein_coding: "#E7EEF9",
+  lncRNA: "#2592AB",
+};
+
+const otherNodeColor = "#F8C774";
+
+const legendItems = [
+  { label: "Protein coding", color: nodeColorsByType.protein_coding },
+  { label: "lncRNA", color: nodeColorsByType.lncRNA },
+  { label: "Other", color: otherNodeColor },
+];
+
+function applyNodeTypeColor(node: InteractionNode): InteractionNode {
+  const type = node.title.match(/(?:^|\n)Type: ([^\n]+)/)?.[1];
+  const color = type ? nodeColorsByType[type] ?? otherNodeColor : otherNodeColor;
+
+  return { ...node, color };
+}
 
 const options: Options = {
   nodes: {
@@ -95,6 +116,7 @@ export default function NetworkGraph({ dataset }: NetworkGraphProps) {
   const [progress, setProgress] = useState(0);
   const [stabilizing, setStabilizing] = useState(true);
   const [controlsOpen, setControlsOpen] = useState(false);
+  const [legendOpen, setLegendOpen] = useState(true);
   const [graphLoaded, setGraphLoaded] = useState(false);
   const [physicsEnabled, setPhysicsEnabled] = useState(true);
   const [physicsSolver, setPhysicsSolver] =
@@ -108,6 +130,7 @@ export default function NetworkGraph({ dataset }: NetworkGraphProps) {
     setStabilizing(true);
     setGraphLoaded(false);
     setControlsOpen(false);
+    setLegendOpen(true);
     setPhysicsEnabled(true);
     setPhysicsSolver("barnesHut");
     setSelectedCcre(null);
@@ -141,7 +164,7 @@ export default function NetworkGraph({ dataset }: NetworkGraphProps) {
     const network = new Network(
       containerRef.current,
       {
-        nodes: new DataSet(dataset.nodes),
+        nodes: new DataSet(dataset.nodes.map(applyNodeTypeColor)),
         edges: new DataSet(dataset.edges),
       },
       networkOptions,
@@ -224,7 +247,7 @@ export default function NetworkGraph({ dataset }: NetworkGraphProps) {
           <FormControlLabel
             sx={{ flexShrink: 0 }}
             control={
-              <Checkbox
+              <Switch
                 checked={physicsEnabled}
                 disabled={!graphLoaded}
                 onChange={(event) => {
@@ -236,7 +259,7 @@ export default function NetworkGraph({ dataset }: NetworkGraphProps) {
                 }}
               />
             }
-            label="Enabled"
+            label="Animation"
           />
         </Stack>
         <Button
@@ -291,6 +314,10 @@ export default function NetworkGraph({ dataset }: NetworkGraphProps) {
             </Box>
           </Box>
         )}
+        <GraphLegend
+          open={legendOpen}
+          onToggle={() => setLegendOpen((open) => !open)}
+        />
       </Box>
 
         <PhysicsControls
@@ -306,6 +333,93 @@ export default function NetworkGraph({ dataset }: NetworkGraphProps) {
         />
       </Stack>
     </Stack>
+  );
+}
+
+interface GraphLegendProps {
+  open: boolean;
+  onToggle: () => void;
+}
+
+function GraphLegend({ open, onToggle }: GraphLegendProps) {
+  return (
+    <Paper
+      variant="outlined"
+      sx={{
+        position: "absolute",
+        top: 12,
+        left: 12,
+        bgcolor: "rgba(255, 255, 255, 0.92)",
+        color: "#111",
+        overflow: "hidden",
+      }}
+    >
+      <Button
+        size="small"
+        onClick={onToggle}
+        aria-expanded={open}
+        sx={{
+          minWidth: 112,
+          justifyContent: "flex-start",
+          color: "#111",
+          px: 1.25,
+          pr: 7,
+          py: 0.5,
+          position: "relative",
+          textTransform: "none",
+        }}
+      >
+        <Typography variant="caption" component="span" sx={{ color: "#111" }}>
+          Gene Type
+        </Typography>
+        <Stack
+          component="span"
+          sx={{
+            position: "absolute",
+            top: 8,
+            right: 12,
+            color: "#111",
+          }}
+        >
+          <Box
+            component="span"
+            sx={{
+              width: 7,
+              height: 7,
+              borderRight: "1px solid currentColor",
+              borderBottom: "1px solid currentColor",
+              transform: open ? "rotate(225deg)" : "rotate(45deg)",
+            }}
+          />
+        </Stack>
+      </Button>
+      <Collapse in={open}>
+        <Stack spacing={0.75} sx={{ px: 1.25, pb: 1 }}>
+          {legendItems.map((item) => (
+            <Stack
+              key={item.label}
+              direction="row"
+              spacing={0.75}
+              alignItems="center"
+            >
+              <Box
+                sx={{
+                  width: 12,
+                  height: 12,
+                  borderRadius: "50%",
+                  bgcolor: item.color,
+                  border: "1px solid rgba(0, 0, 0, 0.35)",
+                  flexShrink: 0,
+                }}
+              />
+              <Typography variant="caption" sx={{ color: "#111" }}>
+                {item.label.replaceAll("_"," ")}
+              </Typography>
+            </Stack>
+          ))}
+        </Stack>
+      </Collapse>
+    </Paper>
   );
 }
 
