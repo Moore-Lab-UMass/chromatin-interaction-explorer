@@ -6,6 +6,7 @@ export interface InteractionNode extends Node {
 }
 
 export interface InteractionEdge extends Edge {
+  interaction_type?: "P-P" | "P-E" | "P-C" | string;
   from: string;
   to: string;
   gene1: string;
