@@ -130,6 +130,8 @@ const options: Options = {
     improvedLayout: false,
   },
   physics: {
+    solver: "forceAtlas2Based",
+    timestep: 1,
     barnesHut: {
       avoidOverlap: 0,
       centralGravity: 0.3,
@@ -180,7 +182,7 @@ export default function NetworkGraph({ dataset }: NetworkGraphProps) {
   const [graphLoaded, setGraphLoaded] = useState(false);
   const [physicsEnabled, setPhysicsEnabled] = useState(true);
   const [physicsSolver, setPhysicsSolver] =
-    useState<PhysicsSolver>("barnesHut");
+    useState<PhysicsSolver>("forceAtlas2Based");
   const [selectedCcre, setSelectedCcre] = useState<string | null>(null);
   const [showPE, setShowPE] = useState(false);
   const [showPC, setShowPC] = useState(false);
@@ -195,7 +197,7 @@ export default function NetworkGraph({ dataset }: NetworkGraphProps) {
     setLegendOpen(true);
     setInteractionLegendOpen(true);
     setPhysicsEnabled(true);
-    setPhysicsSolver("barnesHut");
+    setPhysicsSolver("forceAtlas2Based");
     setSelectedCcre(null);
     setShowPE(false);
     setShowPC(false);
