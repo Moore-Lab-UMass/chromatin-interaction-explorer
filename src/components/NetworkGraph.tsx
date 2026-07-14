@@ -30,6 +30,8 @@ import type {
 const nodeColorsByType: Record<string, string> = {
   protein_coding: "#E7EEF9",
   lncRNA: "#2592AB",
+  enhancer: "#E08D3A",
+  CTCF: "#12304C",
 };
 
 const otherNodeColor = "#F8C774";
@@ -37,6 +39,8 @@ const otherNodeColor = "#F8C774";
 const legendItems = [
   { label: "Protein coding", color: nodeColorsByType.protein_coding },
   { label: "lncRNA", color: nodeColorsByType.lncRNA },
+  { label: "Enhancers", color: nodeColorsByType.enhancer },
+  { label: "CTCF", color: nodeColorsByType.CTCF },
   { label: "Other", color: otherNodeColor },
 ];
 
@@ -60,8 +64,17 @@ const interactionCheckboxSx = {
   "& .MuiSvgIcon-root": { fontSize: 16 },
 } as const;
 function applyNodeTypeColor(node: InteractionNode): InteractionNode {
-  const type = node.title.match(/(?:^|\n)Type: ([^\n]+)/)?.[1];
-  const color = type ? nodeColorsByType[type] ?? otherNodeColor : otherNodeColor;
+  const types =
+    node.title
+      .match(/(?:^|\n)Type: ([^\n]+)/)?.[1]
+      .split(",")
+      .map((type) => type.trim()) ?? [];
+  const preferredType =
+    ["protein_coding", "lncRNA"].find((type) => types.includes(type)) ??
+    types.find((type) => type in nodeColorsByType);
+  const color = preferredType
+    ? nodeColorsByType[preferredType]
+    : otherNodeColor;
 
   return { ...node, color };
 }
