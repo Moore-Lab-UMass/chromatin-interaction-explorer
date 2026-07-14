@@ -10,7 +10,11 @@ from pathlib import Path
 from extract_graph_data import extract_dataset
 
 
-FILE_PATTERN = re.compile(r"(?P<cell_line>.+)-(?P<chromosome>chr(?:[1-9]|1\d|2[0-2]|X))-graph\.html")
+FILE_PATTERN = re.compile(
+    r"(?P<cell_line>.+)-"
+    r"(?P<chromosome>chr(?:[1-9]|1\d|2[0-2]|X))"
+    r"(?:\.P-P-E-C)?-graph\.html"
+)
 CHROMOSOMES = [f"chr{number}" for number in range(1, 23)] + ["chrX"]
 
 
@@ -72,12 +76,12 @@ def catalog_source(catalog: dict[str, list[str]]) -> str:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--source", type=Path, default=Path("raw_html"))
+    parser.add_argument("--source", type=Path, default=Path("raw_html_updated"))
     parser.add_argument("--destination", type=Path, default=Path("src/data"))
     args = parser.parse_args()
 
     sources: dict[str, dict[str, Path]] = defaultdict(dict)
-    for source in sorted(args.source.glob("*-graph.html")):
+    for source in sorted(args.source.glob("*.html")):
         match = FILE_PATTERN.fullmatch(source.name)
         if not match:
             raise ValueError(f"Unexpected graph filename: {source.name}")

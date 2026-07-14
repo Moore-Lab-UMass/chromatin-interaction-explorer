@@ -5,6 +5,7 @@ import {
   Autocomplete,
   Box,
   Button,
+  Checkbox,
   Collapse,
   FormControl,
   FormControlLabel,
@@ -20,7 +21,11 @@ import {
 } from "@mui/material";
 import { DataSet } from "vis-data";
 import { Network, type Options } from "vis-network";
-import type { InteractionDataset, InteractionNode } from "@/data/types";
+import type {
+  InteractionDataset,
+  InteractionEdge,
+  InteractionNode,
+} from "@/data/types";
 
 const nodeColorsByType: Record<string, string> = {
   protein_coding: "#E7EEF9",
@@ -35,6 +40,25 @@ const legendItems = [
   { label: "Other", color: otherNodeColor },
 ];
 
+const interactionLabelSx = {
+  m: 0,
+  minHeight: 24,
+  color: "#111",
+  "& .MuiFormControlLabel-label": {
+    color: "#111",
+    fontSize: "0.75rem",
+    lineHeight: 1.66,
+  },
+  "& .MuiFormControlLabel-label.Mui-disabled": { color: "#111" },
+} as const;
+
+const interactionCheckboxSx = {
+  p: 0.5,
+  color: "#111",
+  "&.Mui-checked": { color: "#111" },
+  "&.Mui-disabled": { color: "rgba(17, 17, 17, 0.55)" },
+  "& .MuiSvgIcon-root": { fontSize: 16 },
+} as const;
 function applyNodeTypeColor(node: InteractionNode): InteractionNode {
   const type = node.title.match(/(?:^|\n)Type: ([^\n]+)/)?.[1];
   const color = type ? nodeColorsByType[type] ?? otherNodeColor : otherNodeColor;
@@ -42,6 +66,26 @@ function applyNodeTypeColor(node: InteractionNode): InteractionNode {
   return { ...node, color };
 }
 
+function filterInteractions(
+  dataset: InteractionDataset,
+  showPE: boolean,
+  showPC: boolean,
+): InteractionDataset {
+  const edges = dataset.edges.filter((edge) => {
+    if (edge.interaction_type === "P-P") return true;
+    if (edge.interaction_type === "P-E") return showPE;
+    if (edge.interaction_type === "P-C") return showPC;
+    return true;
+  });
+  const connectedNodeIds = new Set(
+    edges.flatMap((edge) => [edge.from, edge.to]),
+  );
+
+  return {
+    nodes: dataset.nodes.filter((node) => connectedNodeIds.has(node.id)),
+    edges,
+  };
+}
 const options: Options = {
   nodes: {
     borderWidthSelected: 5,
@@ -113,15 +157,20 @@ export default function NetworkGraph({ dataset }: NetworkGraphProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const configRef = useRef<HTMLDivElement>(null);
   const networkRef = useRef<Network | null>(null);
+  const nodesRef = useRef<DataSet<InteractionNode> | null>(null);
+  const edgesRef = useRef<DataSet<InteractionEdge> | null>(null);
   const [progress, setProgress] = useState(0);
   const [stabilizing, setStabilizing] = useState(true);
   const [controlsOpen, setControlsOpen] = useState(false);
   const [legendOpen, setLegendOpen] = useState(true);
+  const [interactionLegendOpen, setInteractionLegendOpen] = useState(true);
   const [graphLoaded, setGraphLoaded] = useState(false);
   const [physicsEnabled, setPhysicsEnabled] = useState(true);
   const [physicsSolver, setPhysicsSolver] =
     useState<PhysicsSolver>("barnesHut");
   const [selectedCcre, setSelectedCcre] = useState<string | null>(null);
+  const [showPE, setShowPE] = useState(false);
+  const [showPC, setShowPC] = useState(false);
 
   useEffect(() => {
     if (!containerRef.current || !configRef.current) return;
@@ -131,9 +180,12 @@ export default function NetworkGraph({ dataset }: NetworkGraphProps) {
     setGraphLoaded(false);
     setControlsOpen(false);
     setLegendOpen(true);
+    setInteractionLegendOpen(true);
     setPhysicsEnabled(true);
     setPhysicsSolver("barnesHut");
     setSelectedCcre(null);
+    setShowPE(false);
+    setShowPC(false);
     configRef.current.replaceChildren();
 
     const stabilizationIterations = //1000
@@ -161,12 +213,15 @@ export default function NetworkGraph({ dataset }: NetworkGraphProps) {
       },
     };
 
+    const initialDataset = filterInteractions(dataset, false, false);
+    const nodes = new DataSet(initialDataset.nodes.map(applyNodeTypeColor));
+    const edges = new DataSet(initialDataset.edges);
+    nodesRef.current = nodes;
+    edgesRef.current = edges;
+
     const network = new Network(
       containerRef.current,
-      {
-        nodes: new DataSet(dataset.nodes.map(applyNodeTypeColor)),
-        edges: new DataSet(dataset.edges),
-      },
+      { nodes, edges },
       networkOptions,
     );
     networkRef.current = network;
@@ -184,6 +239,8 @@ export default function NetworkGraph({ dataset }: NetworkGraphProps) {
     return () => {
       network.destroy();
       networkRef.current = null;
+      nodesRef.current = null;
+      edgesRef.current = null;
       setGraphLoaded(false);
       configRef.current?.replaceChildren();
     };
@@ -197,6 +254,17 @@ export default function NetworkGraph({ dataset }: NetworkGraphProps) {
 
     return () => window.clearTimeout(timer);
   }, [controlsOpen]);
+
+  const updateInteractionVisibility = (nextPE: boolean, nextPC: boolean) => {
+    setShowPE(nextPE);
+    setShowPC(nextPC);
+
+    const filtered = filterInteractions(dataset, nextPE, nextPC);
+    nodesRef.current?.clear();
+    nodesRef.current?.add(filtered.nodes.map(applyNodeTypeColor));
+    edgesRef.current?.clear();
+    edgesRef.current?.add(filtered.edges);
+  };
 
   const selectCcre = (ccre: string | null) => {
     setSelectedCcre(ccre);
@@ -314,10 +382,33 @@ export default function NetworkGraph({ dataset }: NetworkGraphProps) {
             </Box>
           </Box>
         )}
-        <GraphLegend
-          open={legendOpen}
-          onToggle={() => setLegendOpen((open) => !open)}
-        />
+        <Stack
+          spacing={1}
+          sx={{
+            position: "absolute",
+            top: 12,
+            left: 12,
+            alignItems: "flex-start",
+          }}
+        >
+          <GraphLegend
+            open={legendOpen}
+            onToggle={() => setLegendOpen((open) => !open)}
+          />
+          <InteractionLegend
+            open={interactionLegendOpen}
+            onToggle={() => setInteractionLegendOpen((open) => !open)}
+            disabled={!graphLoaded}
+            showPE={showPE}
+            showPC={showPC}
+            onShowPEChange={(checked) =>
+              updateInteractionVisibility(checked, showPC)
+            }
+            onShowPCChange={(checked) =>
+              updateInteractionVisibility(showPE, checked)
+            }
+          />
+        </Stack>
       </Box>
 
         <PhysicsControls
@@ -336,19 +427,30 @@ export default function NetworkGraph({ dataset }: NetworkGraphProps) {
   );
 }
 
-interface GraphLegendProps {
+interface InteractionLegendProps {
   open: boolean;
   onToggle: () => void;
+  disabled: boolean;
+  showPE: boolean;
+  showPC: boolean;
+  onShowPEChange: (checked: boolean) => void;
+  onShowPCChange: (checked: boolean) => void;
 }
 
-function GraphLegend({ open, onToggle }: GraphLegendProps) {
+function InteractionLegend({
+  open,
+  onToggle,
+  disabled,
+  showPE,
+  showPC,
+  onShowPEChange,
+  onShowPCChange,
+}: InteractionLegendProps) {
   return (
     <Paper
       variant="outlined"
       sx={{
-        position: "absolute",
-        top: 12,
-        left: 12,
+        width: 240,
         bgcolor: "rgba(255, 255, 255, 0.92)",
         color: "#111",
         overflow: "hidden",
@@ -359,7 +461,107 @@ function GraphLegend({ open, onToggle }: GraphLegendProps) {
         onClick={onToggle}
         aria-expanded={open}
         sx={{
-          minWidth: 112,
+          width: "100%",
+          justifyContent: "flex-start",
+          color: "#111",
+          px: 1.25,
+          pr: 7,
+          py: 0.5,
+          position: "relative",
+          textTransform: "none",
+        }}
+      >
+        <Typography variant="caption" component="span" sx={{ color: "#111" }}>
+          Interaction Type
+        </Typography>
+        <Stack
+          component="span"
+          sx={{
+            position: "absolute",
+            top: 8,
+            right: 12,
+            color: "#111",
+          }}
+        >
+          <Box
+            component="span"
+            sx={{
+              width: 7,
+              height: 7,
+              borderRight: "1px solid currentColor",
+              borderBottom: "1px solid currentColor",
+              transform: open ? "rotate(225deg)" : "rotate(45deg)",
+            }}
+          />
+        </Stack>
+      </Button>
+      <Collapse in={open}>
+        <Stack sx={{ px: 1.25, pb: 1 }}>
+          <FormControlLabel
+            sx={interactionLabelSx}
+            control={
+              <Checkbox
+                checked
+                disabled
+                size="small"
+                sx={interactionCheckboxSx}
+              />
+            }
+            label="P-P interactions (always on)"
+          />
+          <FormControlLabel
+            sx={interactionLabelSx}
+            control={
+              <Checkbox
+                checked={showPE}
+                disabled={disabled}
+                size="small"
+                sx={interactionCheckboxSx}
+                onChange={(event) => onShowPEChange(event.target.checked)}
+              />
+            }
+            label="P-E interactions"
+          />
+          <FormControlLabel
+            sx={interactionLabelSx}
+            control={
+              <Checkbox
+                checked={showPC}
+                disabled={disabled}
+                size="small"
+                sx={interactionCheckboxSx}
+                onChange={(event) => onShowPCChange(event.target.checked)}
+              />
+            }
+            label="P-C interactions"
+          />
+        </Stack>
+      </Collapse>
+    </Paper>
+  );
+}
+interface GraphLegendProps {
+  open: boolean;
+  onToggle: () => void;
+}
+
+function GraphLegend({ open, onToggle }: GraphLegendProps) {
+  return (
+    <Paper
+      variant="outlined"
+      sx={{
+        width: 240,
+        bgcolor: "rgba(255, 255, 255, 0.92)",
+        color: "#111",
+        overflow: "hidden",
+      }}
+    >
+      <Button
+        size="small"
+        onClick={onToggle}
+        aria-expanded={open}
+        sx={{
+          width: "100%",
           justifyContent: "flex-start",
           color: "#111",
           px: 1.25,

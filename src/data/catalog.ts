@@ -471,97 +471,97 @@ export const datasetCatalog = {
         (module) => module.default as InteractionDataset,
       ),
   },
-  "MCF_10A": {
+  "MCF": {
     chr1: () =>
-      import("./MCF_10A/chr1.json").then(
+      import("./MCF/chr1.json").then(
         (module) => module.default as InteractionDataset,
       ),
     chr2: () =>
-      import("./MCF_10A/chr2.json").then(
+      import("./MCF/chr2.json").then(
         (module) => module.default as InteractionDataset,
       ),
     chr3: () =>
-      import("./MCF_10A/chr3.json").then(
+      import("./MCF/chr3.json").then(
         (module) => module.default as InteractionDataset,
       ),
     chr4: () =>
-      import("./MCF_10A/chr4.json").then(
+      import("./MCF/chr4.json").then(
         (module) => module.default as InteractionDataset,
       ),
     chr5: () =>
-      import("./MCF_10A/chr5.json").then(
+      import("./MCF/chr5.json").then(
         (module) => module.default as InteractionDataset,
       ),
     chr6: () =>
-      import("./MCF_10A/chr6.json").then(
+      import("./MCF/chr6.json").then(
         (module) => module.default as InteractionDataset,
       ),
     chr7: () =>
-      import("./MCF_10A/chr7.json").then(
+      import("./MCF/chr7.json").then(
         (module) => module.default as InteractionDataset,
       ),
     chr8: () =>
-      import("./MCF_10A/chr8.json").then(
+      import("./MCF/chr8.json").then(
         (module) => module.default as InteractionDataset,
       ),
     chr9: () =>
-      import("./MCF_10A/chr9.json").then(
+      import("./MCF/chr9.json").then(
         (module) => module.default as InteractionDataset,
       ),
     chr10: () =>
-      import("./MCF_10A/chr10.json").then(
+      import("./MCF/chr10.json").then(
         (module) => module.default as InteractionDataset,
       ),
     chr11: () =>
-      import("./MCF_10A/chr11.json").then(
+      import("./MCF/chr11.json").then(
         (module) => module.default as InteractionDataset,
       ),
     chr12: () =>
-      import("./MCF_10A/chr12.json").then(
+      import("./MCF/chr12.json").then(
         (module) => module.default as InteractionDataset,
       ),
     chr13: () =>
-      import("./MCF_10A/chr13.json").then(
+      import("./MCF/chr13.json").then(
         (module) => module.default as InteractionDataset,
       ),
     chr14: () =>
-      import("./MCF_10A/chr14.json").then(
+      import("./MCF/chr14.json").then(
         (module) => module.default as InteractionDataset,
       ),
     chr15: () =>
-      import("./MCF_10A/chr15.json").then(
+      import("./MCF/chr15.json").then(
         (module) => module.default as InteractionDataset,
       ),
     chr16: () =>
-      import("./MCF_10A/chr16.json").then(
+      import("./MCF/chr16.json").then(
         (module) => module.default as InteractionDataset,
       ),
     chr17: () =>
-      import("./MCF_10A/chr17.json").then(
+      import("./MCF/chr17.json").then(
         (module) => module.default as InteractionDataset,
       ),
     chr18: () =>
-      import("./MCF_10A/chr18.json").then(
+      import("./MCF/chr18.json").then(
         (module) => module.default as InteractionDataset,
       ),
     chr19: () =>
-      import("./MCF_10A/chr19.json").then(
+      import("./MCF/chr19.json").then(
         (module) => module.default as InteractionDataset,
       ),
     chr20: () =>
-      import("./MCF_10A/chr20.json").then(
+      import("./MCF/chr20.json").then(
         (module) => module.default as InteractionDataset,
       ),
     chr21: () =>
-      import("./MCF_10A/chr21.json").then(
+      import("./MCF/chr21.json").then(
         (module) => module.default as InteractionDataset,
       ),
     chr22: () =>
-      import("./MCF_10A/chr22.json").then(
+      import("./MCF/chr22.json").then(
         (module) => module.default as InteractionDataset,
       ),
     chrX: () =>
-      import("./MCF_10A/chrX.json").then(
+      import("./MCF/chrX.json").then(
         (module) => module.default as InteractionDataset,
       ),
   },
