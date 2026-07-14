@@ -19,65 +19,50 @@ CHROMOSOMES = [f"chr{number}" for number in range(1, 23)] + ["chrX"]
 
 
 def catalog_source(catalog: dict[str, list[str]]) -> str:
-    lines = [
-        'import type { InteractionDataset } from "./types";',
-        "",
-        "export const datasetCatalog = {",
-    ]
+    cell_lines = ",\n".join(f'  "{cell_line}"' for cell_line in catalog)
+    chromosomes = ",\n".join(f'  "{chromosome}"' for chromosome in CHROMOSOMES)
+    return f'''import type {{ InteractionDataset }} from "./types";
 
-    for cell_line, chromosomes in catalog.items():
-        lines.append(f'  "{cell_line}": {{')
-        for chromosome in chromosomes:
-            lines.extend(
-                [
-                    f"    {chromosome}: () =>",
-                    f'      import("./{cell_line}/{chromosome}.json").then(',
-                    "        (module) => module.default as InteractionDataset,",
-                    "      ),",
-                ]
-            )
-        lines.append("  },")
+export const cellLines = [
+{cell_lines},
+] as const;
 
-    lines.extend(
-        [
-            "} as const;",
-            "",
-            "export type CellLine = keyof typeof datasetCatalog;",
-            "export type Chromosome<T extends CellLine = CellLine> =",
-            "  keyof (typeof datasetCatalog)[T] & string;",
-            "",
-            "export const cellLines = Object.keys(datasetCatalog) as CellLine[];",
-            "",
-            "export function getChromosomes(cellLine: CellLine): string[] {",
-            "  return Object.keys(datasetCatalog[cellLine]);",
-            "}",
-            "",
-            "export async function loadDataset(",
-            "  cellLine: CellLine,",
-            "  chromosome: string,",
-            "): Promise<InteractionDataset> {",
-            "  const loaders = datasetCatalog[cellLine] as Record<",
-            "    string,",
-            "    () => Promise<InteractionDataset>",
-            "  >;",
-            "  const loader = loaders[chromosome];",
-            "",
-            "  if (!loader) {",
-            "    throw new Error(`No dataset found for ${cellLine} ${chromosome}`);",
-            "  }",
-            "",
-            "  return loader();",
-            "}",
-            "",
-        ]
-    )
-    return "\n".join(lines)
+const chromosomes = [
+{chromosomes},
+] as const;
 
+export type CellLine = (typeof cellLines)[number];
+export type Chromosome = (typeof chromosomes)[number];
+
+export function getChromosomes(_cellLine: CellLine): string[] {{
+  return [...chromosomes];
+}}
+
+export async function loadDataset(
+  cellLine: CellLine,
+  chromosome: string,
+): Promise<InteractionDataset> {{
+  if (!chromosomes.includes(chromosome as Chromosome)) {{
+    throw new Error(`No dataset found for ${{cellLine}} ${{chromosome}}`);
+  }}
+
+  const response = await fetch(
+    `/data/${{encodeURIComponent(cellLine)}}/${{chromosome}}.json`,
+  );
+
+  if (!response.ok) {{
+    throw new Error(`Unable to load ${{cellLine}} ${{chromosome}}`);
+  }}
+
+  return (await response.json()) as InteractionDataset;
+}}
+'''
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--source", type=Path, default=Path("raw_html_updated"))
-    parser.add_argument("--destination", type=Path, default=Path("src/data"))
+    parser.add_argument("--destination", type=Path, default=Path("public/data"))
+    parser.add_argument("--catalog", type=Path, default=Path("src/data/catalog.ts"))
     args = parser.parse_args()
 
     sources: dict[str, dict[str, Path]] = defaultdict(dict)
@@ -105,7 +90,8 @@ def main() -> None:
                 f"{len(dataset['nodes'])} nodes, {len(dataset['edges'])} edges"
             )
 
-    (args.destination / "catalog.ts").write_text(catalog_source(catalog))
+    args.catalog.parent.mkdir(parents=True, exist_ok=True)
+    args.catalog.write_text(catalog_source(catalog))
     print(f"Imported {len(sources)} cell lines and {sum(map(len, sources.values()))} graphs")
 
 
