@@ -142,11 +142,7 @@ const options: Options = {
     },
     enabled: true,
     stabilization: {
-      enabled: true,
-      fit: true,
-      iterations: 350,
-      onlyDynamicEdges: false,
-      updateInterval: 25,
+      enabled: false,
     },
   },
 };
@@ -172,6 +168,7 @@ export default function NetworkGraph({ dataset }: NetworkGraphProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const configRef = useRef<HTMLDivElement>(null);
   const networkRef = useRef<Network | null>(null);
+  const settleTimerRef = useRef<number | null>(null);
   const nodesRef = useRef<DataSet<InteractionNode> | null>(null);
   const edgesRef = useRef<DataSet<InteractionEdge> | null>(null);
   const [progress, setProgress] = useState(0);
@@ -240,18 +237,26 @@ export default function NetworkGraph({ dataset }: NetworkGraphProps) {
       networkOptions,
     );
     networkRef.current = network;
+    setStabilizing(false);
+    setGraphLoaded(true);
 
     network.on("stabilizationProgress", ({ iterations, total }) => {
       setProgress(Math.round((iterations / total) * 100));
     });
 
-    network.once("stabilizationIterationsDone", () => {
+    network.once("stabilized", () => {
+      network.setOptions({ physics: { enabled: false } });
+      setPhysicsEnabled(false);
       setProgress(100);
       setStabilizing(false);
       setGraphLoaded(true);
     });
 
     return () => {
+      if (settleTimerRef.current !== null) {
+        window.clearTimeout(settleTimerRef.current);
+        settleTimerRef.current = null;
+      }
       network.destroy();
       networkRef.current = null;
       nodesRef.current = null;
@@ -273,6 +278,29 @@ export default function NetworkGraph({ dataset }: NetworkGraphProps) {
   const updateInteractionVisibility = (nextPE: boolean, nextPC: boolean) => {
     setShowPE(nextPE);
     setShowPC(nextPC);
+
+    const network = networkRef.current;
+    if (!network) return;
+
+    if (settleTimerRef.current !== null) {
+      window.clearTimeout(settleTimerRef.current);
+    }
+
+    const stopPhysics = () => {
+      if (networkRef.current !== network) return;
+      network.setOptions({ physics: { enabled: false } });
+      setPhysicsEnabled(false);
+      if (settleTimerRef.current !== null) {
+        window.clearTimeout(settleTimerRef.current);
+        settleTimerRef.current = null;
+      }
+    };
+
+    network.off("stabilized");
+    network.once("stabilized", stopPhysics);
+    settleTimerRef.current = window.setTimeout(stopPhysics, 6000);
+    network.setOptions({ physics: { enabled: true } });
+    setPhysicsEnabled(true);
 
     const filtered = filterInteractions(dataset, nextPE, nextPC);
     nodesRef.current?.clear();
